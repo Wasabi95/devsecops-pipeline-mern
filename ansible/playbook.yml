@@ -2,8 +2,6 @@
 - name: Install DevOps and DevSecOps tools
   hosts: devops_tools
   become: true
-  vars_files:
-    - group_vars/all.yml # Assumes this file defines 'tools_to_install'
 
   tasks:
     - name: Update apt cache and install base packages
