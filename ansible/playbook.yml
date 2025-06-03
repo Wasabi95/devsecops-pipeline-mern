@@ -1,0 +1,181 @@
+---
+- name: Install DevOps and DevSecOps tools
+  hosts: devops_tools
+  become: true
+  vars_files:
+    - group_vars/all.yml # Assumes this file defines 'tools_to_install'
+
+  tasks:
+    - name: Update apt cache and install base packages
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        name:
+          - curl
+          - gnupg
+          - software-properties-common
+          - unzip
+          - apt-transport-https # Required for some repositories
+          - ca-certificates    # Required for some repositories
+        state: present
+
+    # Docker Installation
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: "'docker' in tools_to_install"
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+      when: "'docker' in tools_to_install"
+
+    - name: Install Docker CE
+      ansible.builtin.apt:
+        name: docker-ce
+        state: present
+      when: "'docker' in tools_to_install"
+
+    - name: Install Docker Compose (using official binary download)
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+      when: "'docker' in tools_to_install"
+
+    - name: Add current user to docker group (if applicable for non-root execution)
+      ansible.builtin.user:
+        name: "{{ ansible_user_id }}" # Or a specific user, e.g., 'ubuntu'
+        groups: docker
+        append: yes
+      when: "'docker' in tools_to_install"
+      # Note: This requires logging out and back in for the group change to take effect for interactive sessions.
+
+    # Jenkins Installation
+    - name: Get Jenkins GPG key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+        mode: '0644'
+      when: "'jenkins' in tools_to_install"
+
+    - name: Add Jenkins repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+      when: "'jenkins' in tools_to_install"
+
+    - name: Install Jenkins and Java (Jenkins requires Java)
+      ansible.builtin.apt:
+        name:
+          - jenkins
+          - openjdk-17-jre # Specify a compatible Java version
+        state: present
+      when: "'jenkins' in tools_to_install"
+
+    # SonarQube Installation (using Docker)
+    - name: Create Docker volumes for SonarQube
+      community.docker.docker_volume:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - sonarqube_data
+        - sonarqube_extensions
+      when: "'sonarqube' in tools_to_install"
+
+    - name: Run SonarQube container
+      community.docker.docker_container:
+        name: sonarqube
+        image: sonarqube:lts-community
+        ports:
+          - "9000:9000"
+        volumes:
+          - sonarqube_data:/opt/sonarqube/data
+          - sonarqube_extensions:/opt/sonarqube/extensions
+        restart_policy: always # Ensure it restarts on reboot
+      when: "'sonarqube' in tools_to_install"
+
+    # Trivy Installation
+    - name: Install Trivy (using official script)
+      ansible.builtin.shell: |
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+      args:
+        creates: /usr/local/bin/trivy # Idempotency check
+      when: "'trivy' in tools_to_install"
+
+    # OWASP ZAP Installation (using Docker)
+    - name: Run OWASP ZAP container
+      community.docker.docker_container:
+        name: owasp-zap
+        image: owasp/zap2docker-stable
+        command: zap-webswing.sh
+        ports:
+          - "8080:8080"
+        restart_policy: always
+      when: "'zaproxy' in tools_to_install"
+
+    # Kubernetes Tools (kubectl, Helm)
+    - name: Install kubectl
+      ansible.builtin.shell: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      args:
+        creates: /usr/local/bin/kubectl # Idempotency check
+      when: "'kubectl' in tools_to_install"
+
+    - name: Install Helm
+      ansible.builtin.shell: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        creates: /usr/local/bin/helm # Idempotency check
+      when: "'helm' in tools_to_install"
+
+    # Terraform Installation
+    - name: Add HashiCorp GPG key
+      ansible.builtin.apt_key:
+        url: https://apt.releases.hashicorp.com/gpg
+        state: present
+      when: "'terraform' in tools_to_install"
+
+    - name: Add HashiCorp repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+        state: present
+      when: "'terraform' in tools_to_install"
+
+    - name: Install Terraform
+      ansible.builtin.apt:
+        name: terraform
+        state: present
+      when: "'terraform' in tools_to_install"
+
+    # Checkov Installation (Python-based)
+    - name: Install Python3 and pip (if not present for Checkov)
+      ansible.builtin.apt:
+        name:
+          - python3
+          - python3-pip
+        state: present
+      when: "'checkov' in tools_to_install"
+
+    - name: Install Checkov using pip
+      ansible.builtin.pip:
+        name: checkov
+        executable: pip3
+      when: "'checkov' in tools_to_install"
+
+    # Start and enable services
+    - name: Start and enable services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - docker
+        - jenkins
+      # Only attempt to start services if they were installed
+      when:
+        - (item == 'docker' and 'docker' in tools_to_install) or
+          (item == 'jenkins' and 'jenkins' in tools_to_install)
