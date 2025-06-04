@@ -50,13 +50,14 @@ destroy-infra:
 nuke-infra:
 	@echo "☢️☢️☢️ NUKE PROTOCOL ENGAGED ☢️☢️☢️"
 	${CONFIRM_DESTROY}
-	@echo "Forcibly unlocking fucking state..."
-	cd terraform-iac && terraform force-unlock -force $(shell terraform -chdir=terraform-iac output -raw lock_id 2>/dev/null || echo "")
+	@echo "Forcibly unlocking fucking state... (skip if no lock exists)"
+	cd terraform-iac && terraform force-unlock -force LOCK_ID || true
 	@echo "Executing fucking destruction sequence..."
 	cd terraform-iac && terraform destroy -auto-approve -refresh=false
 	@echo "Incinerating fucking state..."
 	rm -rf terraform-iac/.terraform* terraform-iac/*.tfstate*
 	@echo "☢️☢️☢️ NUKE COMPLETE ☢️☢️☢️"
+
 
 provision:
 	@echo "Provisioning with Ansible..."

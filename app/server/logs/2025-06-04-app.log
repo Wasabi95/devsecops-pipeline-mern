@@ -1,0 +1,27 @@
+2025-06-04T11:30:39.252Z [info]: 🚀 Server running in development mode on port 7000
+2025-06-04T11:32:08.983Z [http]: [0mGET /api/users/employees [32m200[0m 199.121 ms - 170[0m
+2025-06-04T11:32:09.084Z [http]: [0mGET /api/tasks?page=1&limit=5 [32m200[0m 283.520 ms - 1430[0m
+2025-06-04T11:32:09.170Z [http]: [0mGET /api/users/employees [36m304[0m 184.526 ms - -[0m
+2025-06-04T11:32:09.406Z [http]: [0mGET /api/users/employees [36m304[0m 232.494 ms - -[0m
+2025-06-04T11:32:09.409Z [http]: [0mGET /api/tasks?page=1&limit=5 [36m304[0m 320.880 ms - -[0m
+2025-06-04T11:32:09.599Z [http]: [0mGET /api/users/employees [36m304[0m 187.180 ms - -[0m
+2025-06-04T11:32:09.781Z [http]: [0mGET /api/users/employees [36m304[0m 178.506 ms - -[0m
+2025-06-04T11:32:09.891Z [http]: [0mGET /api/users/683892ca669a954de3209be6 [32m200[0m 737.156 ms - 187[0m
+2025-06-04T11:32:09.899Z [http]: [0mGET /api/users/683892af669a954de3209bdb [32m200[0m 759.100 ms - 188[0m
+2025-06-04T11:32:09.989Z [http]: [0mGET /api/users/employees [36m304[0m 203.437 ms - -[0m
+2025-06-04T11:32:10.074Z [http]: [0mGET /api/users/683892ca669a954de3209be6 [36m304[0m 179.026 ms - -[0m
+2025-06-04T11:32:10.094Z [http]: [0mGET /api/users/683892af669a954de3209bdb [36m304[0m 190.383 ms - -[0m
+2025-06-04T11:32:10.183Z [http]: [0mGET /api/users/employees [36m304[0m 189.179 ms - -[0m
+2025-06-04T11:32:10.280Z [http]: [0mGET /api/users/683892af669a954de3209bdb [36m304[0m 180.669 ms - -[0m
+2025-06-04T11:32:10.377Z [http]: [0mGET /api/users/employees [36m304[0m 189.495 ms - -[0m
+2025-06-04T11:32:10.483Z [http]: [0mGET /api/users/683892af669a954de3209bdb [36m304[0m 194.588 ms - -[0m
+2025-06-04T11:32:10.595Z [http]: [0mGET /api/users/employees [36m304[0m 211.086 ms - -[0m
+2025-06-04T11:32:10.687Z [http]: [0mGET /api/users/683892af669a954de3209bdb [36m304[0m 196.611 ms - -[0m
+2025-06-04T11:32:10.789Z [http]: [0mGET /api/users/employees [36m304[0m 188.818 ms - -[0m
+2025-06-04T11:32:10.885Z [http]: [0mGET /api/users/683892af669a954de3209bdb [36m304[0m 191.456 ms - -[0m
+2025-06-04T11:32:10.976Z [http]: [0mGET /api/users/employees [36m304[0m 181.859 ms - -[0m
+2025-06-04T11:32:11.068Z [http]: [0mGET /api/users/683892af669a954de3209bdb [36m304[0m 177.720 ms - -[0m
+2025-06-04T11:32:11.162Z [http]: [0mGET /api/users/employees [36m304[0m 182.547 ms - -[0m
+2025-06-04T11:32:11.253Z [http]: [0mGET /api/users/683892af669a954de3209bdb [36m304[0m 177.790 ms - -[0m
+2025-06-04T11:32:11.352Z [http]: [0mGET /api/users/employees [36m304[0m 185.290 ms - -[0m
+2025-06-04T11:32:11.536Z [http]: [0mGET /api/users/employees [36m304[0m 181.609 ms - -[0m
