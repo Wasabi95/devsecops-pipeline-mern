@@ -42,7 +42,10 @@
 
     - name: Install Docker CE
       ansible.builtin.apt:
-        name: docker-ce
+        name: 
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
         state: present
       when: "'docker' in tools_to_install"
 
@@ -101,15 +104,17 @@
         volumes:
           - sonarqube_data:/opt/sonarqube/data
           - sonarqube_extensions:/opt/sonarqube/extensions
+        environment:
+          SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
         restart_policy: always
       when: "'sonarqube' in tools_to_install"
 
-    # Trivy
-    - name: Install Trivy
-      ansible.builtin.shell: |
-        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-      args:
-        creates: /usr/local/bin/trivy
+    # Trivy - Safe installation method
+    - name: Download Trivy
+      ansible.builtin.get_url:
+        url: "https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_{{ ansible_system | lower }}-{{ ansible_architecture }}"
+        dest: /usr/local/bin/trivy
+        mode: '0755'
       when: "'trivy' in tools_to_install"
 
     # OWASP ZAP (Docker)
@@ -123,20 +128,27 @@
         restart_policy: always
       when: "'zaproxy' in tools_to_install"
 
-    # kubectl
+    # kubectl - Safe installation method
     - name: Install kubectl
-      ansible.builtin.shell: |
-        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-        install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-      args:
-        creates: /usr/local/bin/kubectl
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/{{ lookup('url', 'https://dl.k8s.io/release/stable.txt') }}/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
       when: "'kubectl' in tools_to_install"
 
-    # Helm
+    # Helm - Safe installation method
+    - name: Download Helm
+      ansible.builtin.get_url:
+        url: "https://get.helm.sh/helm-v3.14.4-linux-amd64.tar.gz"
+        dest: /tmp/helm.tar.gz
+      when: "'helm' in tools_to_install"
+
     - name: Install Helm
-      ansible.builtin.shell: |
-        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-      args:
+      ansible.builtin.unarchive:
+        src: /tmp/helm.tar.gz
+        dest: /usr/local/bin
+        remote_src: yes
+        extra_opts: [--strip-components=1]
         creates: /usr/local/bin/helm
       when: "'helm' in tools_to_install"
 
@@ -183,4 +195,37 @@
       loop:
         - docker
         - jenkins
-      when: "(item == 'docker' and 'docker' in tools_to_install) or (item == 'jenkins' and 'jenkins' in tools_to_install)"
+      when: > 
+        (item == 'docker' and 'docker' in tools_to_install) or 
+        (item == 'jenkins' and 'jenkins' in tools_to_install)
+    
+    # Post-install configuration
+    - name: Display Jenkins initial admin password
+      ansible.builtin.command: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_password
+      changed_when: false
+      when: "'jenkins' in tools_to_install"
+      
+    - name: Show Jenkins admin password
+      ansible.builtin.debug:
+        msg: "Jenkins initial admin password: {{ jenkins_password.stdout }}"
+      when: "'jenkins' in tools_to_install"
+    
+    # Increase virtual memory for SonarQube
+    - name: Increase virtual memory limits
+      ansible.builtin.sysctl:
+        name: vm.max_map_count
+        value: '262144'
+        sysctl_set: yes
+        state: present
+        reload: yes
+      when: "'sonarqube' in tools_to_install"
+    
+    # Ensure docker.sock is accessible
+    - name: Ensure docker.sock permissions
+      ansible.builtin.file:
+        path: /var/run/docker.sock
+        owner: root
+        group: docker
+        mode: '0660'
+      when: "'docker' in tools_to_install"

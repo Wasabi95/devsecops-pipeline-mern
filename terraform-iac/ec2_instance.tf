@@ -47,6 +47,14 @@ resource "aws_security_group" "devsecops_sg" {
     cidr_blocks = ["191.111.242.104/32"]
     description = "SSH Access"
   }
+  # Allow port 5173 TCP from anywhere (0.0.0.0/0)
+  ingress {
+    from_port   = 5173
+    to_port     = 5173
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Frontend Vite Dev Server Access"
+  }
 
   # HTTP (Web) access from anywhere
   ingress {
