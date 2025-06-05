@@ -57,8 +57,6 @@
       debug:
         msg: "Jenkins installation complete. Access it at http://<your-ec2-ip>:8080"
 
-    - name: Install security tools
-
     # Part 1: Install Trivy
     - name: Install Trivy dependencies
       apt:
