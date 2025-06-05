@@ -99,6 +99,18 @@
         groups: docker
         append: yes
 
+    - name: Install Python3 pip and docker SDK for Python
+      apt:
+        name:
+          - python3-pip
+        state: present
+        update_cache: yes
+        
+    - name: Install Docker Python SDK via pip3
+      pip:
+        name: docker
+        executable: pip3    
+
     # Containerized Tools
     - name: Start SonarQube container
       community.docker.docker_container:
