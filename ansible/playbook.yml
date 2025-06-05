@@ -150,7 +150,7 @@
     - name: Start OWASP ZAP container
       community.docker.docker_container:
         name: owasp-zap
-        image: owasp/zap2docker-stable
+        image: ghcr.io/zaproxy/zaproxy:stable       
         state: started
         restart_policy: unless-stopped
         ports:

@@ -139,8 +139,8 @@ resource "aws_security_group" "devsecops_sg" {
 
   # OWASP ZAP (8090)
   ingress {
-    from_port   = 8090
-    to_port     = 8090
+    from_port   = 8081
+    to_port     = 8081
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     description = "OWASP ZAP DAST"
