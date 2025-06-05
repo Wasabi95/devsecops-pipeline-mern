@@ -1,12 +1,14 @@
-- name: Install Jenkins on Ubuntu
+---
+- name: Install DevOps tools stack
   hosts: devops_tools
-  become: yes
+  become: true
   tasks:
+    # Jenkins Installation
     - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install required dependencies
+    - name: Install Jenkins dependencies
       apt:
         name:
           - fontconfig
@@ -34,7 +36,7 @@
         dest: /etc/apt/sources.list.d/jenkins.list
         mode: '0644'
 
-    - name: Update apt cache after adding Jenkins repo
+    - name: Update apt cache for Jenkins
       apt:
         update_cache: yes
 
@@ -43,21 +45,13 @@
         name: jenkins
         state: present
 
-    - name: Enable Jenkins service
+    - name: Enable and start Jenkins service
       systemd:
         name: jenkins
         enabled: yes
-
-    - name: Start Jenkins service
-      systemd:
-        name: jenkins
         state: started
 
-    - name: Print Jenkins installation message
-      debug:
-        msg: "Jenkins installation complete. Access it at http://<your-ec2-ip>:8080"
-
-    # Part 1: Install Trivy
+    # Security Tools
     - name: Install Trivy dependencies
       apt:
         name:
@@ -86,8 +80,8 @@
         state: present
         update_cache: yes
 
-    # Part 2: Install SonarQube
-    - name: Install Docker dependencies
+    # Docker Setup
+    - name: Install Docker
       apt:
         name: docker.io
         state: present
@@ -105,12 +99,8 @@
         groups: docker
         append: yes
 
-    - name: Pull SonarQube image
-      community.docker.docker_image:
-        name: sonarqube:lts-community
-        source: pull
-
-    - name: Create SonarQube container
+    # Containerized Tools
+    - name: Start SonarQube container
       community.docker.docker_container:
         name: sonarqube
         image: sonarqube:lts-community
@@ -120,3 +110,51 @@
           - "9000:9000"
         env:
           SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+
+    - name: Start Prometheus container
+      community.docker.docker_container:
+        name: prometheus
+        image: prom/prometheus
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "9090:9090"
+        volumes:
+          - prometheus_data:/prometheus
+
+    - name: Start Grafana container
+      community.docker.docker_container:
+        name: grafana
+        image: grafana/grafana
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "3000:3000"
+        volumes:
+          - grafana_data:/var/lib/grafana
+        env:
+          GF_SECURITY_ADMIN_PASSWORD: "ChangeThisPassword123!"
+
+    - name: Start OWASP ZAP container
+      community.docker.docker_container:
+        name: owasp-zap
+        image: owasp/zap2docker-stable
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "8081:8080"  # Use 8081 to avoid conflict with Jenkins
+        command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true -config api.key=ChangeThisKey123
+
+    # Final status message
+    - name: Print installation summary
+      debug:
+        msg: |
+          DevOps Tools Installation Complete!
+          Access:
+            - Jenkins:     http://{{ ansible_host }}:8080
+            - SonarQube:   http://{{ ansible_host }}:9000
+            - Prometheus:  http://{{ ansible_host }}:9090
+            - Grafana:     http://{{ ansible_host }}:3000  (admin/ChangeThisPassword123!)
+            - OWASP ZAP:   http://{{ ansible_host }}:8081  (API key: ChangeThisKey123)
+          Security:
+            - Trivy installed for vulnerability scanning
