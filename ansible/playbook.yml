@@ -56,3 +56,69 @@
     - name: Print Jenkins installation message
       debug:
         msg: "Jenkins installation complete. Access it at http://<your-ec2-ip>:8080"
+
+    - name: Install security tools
+
+    # Part 1: Install Trivy
+    - name: Install Trivy dependencies
+      apt:
+        name:
+          - wget
+          - apt-transport-https
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+
+    - name: Add Trivy GPG key
+      ansible.builtin.shell:
+        cmd: "wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | tee /usr/share/keyrings/trivy.gpg"
+      args:
+        creates: /usr/share/keyrings/trivy.gpg
+
+    - name: Add Trivy repository
+      ansible.builtin.lineinfile:
+        path: /etc/apt/sources.list.d/trivy.list
+        line: "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+        create: yes
+
+    - name: Install Trivy
+      apt:
+        name: trivy
+        state: present
+        update_cache: yes
+
+    # Part 2: Install SonarQube
+    - name: Install Docker dependencies
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add current user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Pull SonarQube image
+      community.docker.docker_image:
+        name: sonarqube:lts-community
+        source: pull
+
+    - name: Create SonarQube container
+      community.docker.docker_container:
+        name: sonarqube
+        image: sonarqube:lts-community
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "9000:9000"
+        env:
+          SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
