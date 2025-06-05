@@ -1,5 +1,5 @@
 - name: Install Jenkins on Ubuntu
-  hosts: jenkins_servers
+  hosts: devops_tools
   become: yes
   tasks:
     - name: Update apt cache
@@ -56,4 +56,3 @@
     - name: Print Jenkins installation message
       debug:
         msg: "Jenkins installation complete. Access it at http://<your-ec2-ip>:8080"
-  
