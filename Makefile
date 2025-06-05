@@ -19,32 +19,32 @@ test:
 
 # Infrastructure Automation
 # Fucking safety first
-CONFIRM_DESTROY := @echo -n "Are you fucking sure? (y/n) " && read ans && [ $${ans:-N} = y ]
+CONFIRM_DESTROY := @echo -n "Are you sure? (y/n) " && read ans && [ $${ans:-N} = y ]
 
 # Terraform Operations
 
 # New target to initialize Terraform providers
 init-infra:
-	@echo "Initializing fucking Terraform modules..."
+	@echo "Initializing Terraform modules..."
 	cd terraform-iac && terraform init -upgrade -reconfigure
 
 validate-infra: init-infra # Now validate depends on init
-	@echo "Validating fucking Terraform..."
+	@echo "Validating Terraform..."
 	cd terraform-iac && terraform validate
 
 deploy-infra: validate-infra
-	@echo "Generating fucking execution plan..."
+	@echo "Generating execution plan..."
 	cd terraform-iac && terraform plan -out=tfplan
 	${CONFIRM_DESTROY}
 	cd terraform-iac && terraform apply -auto-approve tfplan
 
 destroy-infra:
-	@echo "Planning fucking destruction..."
+	@echo "Planning destruction..."
 	cd terraform-iac && terraform plan -destroy -out=destroy_plan
 	@echo "☠️☠️☠️ DESTRUCTION IMMINENT ☠️☠️☠️"
 	${CONFIRM_DESTROY}
 	cd terraform-iac && terraform apply -auto-approve destroy_plan
-	@echo "Purging fucking state files..."
+	@echo "Purging state files..."
 	rm -f terraform-iac/*.tfstate* terraform-iac/.terraform.lock.hcl
 
 nuke-infra:
