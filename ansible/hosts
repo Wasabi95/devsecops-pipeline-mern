@@ -1,2 +1,2 @@
 [devops_tools] # Corrected group name to match the playbook
-107.23.186.226 ansible_user=ubuntu ansible_ssh_private_key_file=secrets/key-pair.pem
+54.234.233.88 ansible_user=ubuntu ansible_ssh_private_key_file=secrets/key-pair.pem

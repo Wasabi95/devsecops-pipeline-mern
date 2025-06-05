@@ -1,80 +1,59 @@
----
-- name: Install DevSecOps Tools Suite
-  hosts: devops_tools
-  become: true
-  vars:
-    jenkins_port: 8080
-    sonarqube_ver: "10.5.1.90531"
-    prometheus_ver: "2.52.0"
-    grafana_port: 3000
-    zap_port: 8090
-
+- name: Install Jenkins on Ubuntu
+  hosts: jenkins_servers
+  become: yes
   tasks:
-    # ---------------------------------------------------
-    # Jenkins Repository Cleanup
-    # ---------------------------------------------------
-    - name: Remove all Jenkins repository configurations
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/apt/sources.list.d/jenkins.list
-        - /etc/apt/sources.list.d/jenkins-stable.list
-        - /etc/apt/sources.list.d/jenkins-ci.list
-        - /usr/share/keyrings/jenkins.gpg
-        - /usr/share/keyrings/jenkins-keyring.asc
-        - /etc/apt/trusted.gpg.d/jenkins.gpg
-      ignore_errors: true
-
-    - name: Remove Jenkins keys from APT keyring
-      shell: |
-        apt-key list | grep -B1 'Jenkins Project' | grep pub | awk '{print substr($2,7)}' | xargs -r apt-key del
-      args:
-        warn: false
-      register: key_removal
-      changed_when: key_removal.stdout != ""
-      ignore_errors: true
-
-    - name: Purge existing Jenkins packages
+    - name: Update apt cache
       apt:
-        name: jenkins
-        state: absent
-        purge: true
-      ignore_errors: true
+        update_cache: yes
 
-    # ---------------------------------------------------
-    # Jenkins Installation (Simplified and Robust)
-    # ---------------------------------------------------
-    - name: Add Jenkins repository key (direct method)
-      apt_key:
-        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
-        state: present
-
-    - name: Add Jenkins repository without signed-by
-      apt_repository:
-        repo: "deb https://pkg.jenkins.io/debian-stable binary/"
-        state: present
-        filename: jenkins-stable
-
-    - name: Update apt cache after repository changes
-      apt:
-        update_cache: true
-
-    - name: Install Jenkins and Java
+    - name: Install required dependencies
       apt:
         name:
-          - jenkins
+          - fontconfig
           - openjdk-17-jre
+          - wget
+          - gnupg
         state: present
 
-    - name: Configure Jenkins port
-      replace:
-        path: /etc/default/jenkins
-        regexp: '^HTTP_PORT=.*'
-        replace: "HTTP_PORT={{ jenkins_port }}"
+    - name: Create keyring directory
+      file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: '0755'
 
-    - name: Start and enable Jenkins
+    - name: Add Jenkins GPG key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+        mode: '0644'
+
+    - name: Add Jenkins repository
+      copy:
+        content: |
+          deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/
+        dest: /etc/apt/sources.list.d/jenkins.list
+        mode: '0644'
+
+    - name: Update apt cache after adding Jenkins repo
+      apt:
+        update_cache: yes
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Enable Jenkins service
+      systemd:
+        name: jenkins
+        enabled: yes
+
+    - name: Start Jenkins service
       systemd:
         name: jenkins
         state: started
-        enabled: true
+
+    - name: Print Jenkins installation message
+      debug:
+        msg: "Jenkins installation complete. Access it at http://<your-ec2-ip>:8080"
+  
